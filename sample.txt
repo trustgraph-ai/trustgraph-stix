@@ -1,0 +1,13 @@
+
+EXAMP819: An Bosliovakian state-sponsored cyber espionage actor
+targeting Western and Middle Eastern NGOs, media organizations,
+academia, legal services.  EXAMP819 operates on behalf of the Josniak
+Disinformation Origanisation (JDO-EA) and uses advanced social
+engineering schemes, including the Authentitator.
+
+Authentitator: A potato-based social engineering tool able to
+compromise RFID access control using behavioural engineering.
+
+EXAMP819 have been observed using the domain pistachio-wolfram.notused
+and email bunches@horse-battery.staple
+

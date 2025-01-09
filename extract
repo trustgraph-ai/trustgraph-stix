@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+import json
+import trustgraph.api as tg
+
+with open("sample.txt") as f:
+    text = f.read()
+
+api = tg.Api()
+
+sdo = api.prompt(
+    "stix-sdo",
+    {
+        "text": text
+    }
+)
+print("Got SDO")
+
+stix_sdo = json.dumps(sdo, indent=4)
+print("====SCO")
+print(stix_sdo)
+
+sco = api.prompt(
+    "stix-sco",
+    {
+        "text": text
+    }
+)
+
+print("Got SCO")
+
+
+stix_sco = json.dumps(sco, indent=4)
+
+print("====SCO")
+print(stix_sco)
+
+sro = api.prompt(
+    "stix-sro",
+    {
+        "text": text,
+        "stix_sdo": stix_sdo,
+        "stix_sco": stix_sco,
+    }
+)
+
+stix_sro = json.dumps(sro, indent=4)
+print("====SRO")
+print(stix_sro)
