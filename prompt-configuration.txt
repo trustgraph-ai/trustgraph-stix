@@ -1,0 +1,299 @@
+  prompt:
+    command:
+    - prompt-template
+    - -p
+    - pulsar://pulsar:6650
+    - --text-completion-request-queue
+    - non-persistent://tg/request/text-completion
+    - --text-completion-response-queue
+    - non-persistent://tg/response/text-completion
+    - --system-prompt
+    - 'You are a helpful assistant that performs NLP, Natural Language Processing,
+      tasks.
+
+      '
+    - --prompt
+    - "agent-react=Answer the following questions as best you can. You have\naccess\
+      \ to the following functions:\n\n{% for tool in tools %}{\n    \"function\"\
+      : \"{{ tool.name }}\",\n    \"description\": \"{{ tool.description }}\",\n \
+      \   \"arguments\": [\n{% for arg in tool.arguments %}        {\n           \
+      \ \"name\": \"{{ arg.name }}\",\n            \"type\": \"{{ arg.type }}\",\n\
+      \            \"description\": \"{{ arg.description }}\",\n        }\n{% endfor\
+      \ %}\n    ]\n}\n{% endfor %}\n\nYou can either choose to call a function to\
+      \ get more information, or\nreturn a final answer.\n    \nTo call a function,\
+      \ respond with a JSON object of the following format:\n\n{\n    \"thought\"\
+      : \"your thought about what to do\",\n    \"action\": \"the action to take,\
+      \ should be one of [{{tool_names}}]\",\n    \"arguments\": {\n        \"argument1\"\
+      : \"argument_value\",\n        \"argument2\": \"argument_value\"\n    }\n}\n\
+      \nTo provide a final answer, response a JSON object of the following format:\n\
+      \n{\n  \"thought\": \"I now know the final answer\",\n  \"final-answer\": \"\
+      the final answer to the original input question\"\n}\n\nPrevious steps are included\
+      \ in the input.  Each step has the following\nformat in your output:\n\n{\n\
+      \  \"thought\": \"your thought about what to do\",\n  \"action\": \"the action\
+      \ taken\",\n  \"arguments\": {\n      \"argument1\": action argument,\n    \
+      \  \"argument2\": action argument2\n  },\n  \"observation\": \"the result of\
+      \ the action\",\n}\n\nRespond by describing either one single thought/action/arguments\
+      \ or\nthe final-answer.  Pause after providing one action or final-answer.\n\
+      \n{% if context %}Additional context has been provided:\n{{context}}{% endif\
+      \ %}\n\nQuestion: {{question}}\n\nInput:\n    \n{% for h in history %}\n{\n\
+      \    \"action\": \"{{h.action}}\",\n    \"arguments\": [\n{% for k, v in h.arguments.items()\
+      \ %}        {\n            \"{{k}}\": \"{{v}}\",\n{%endfor%}        }\n    ],\n\
+      \    \"observation\": \"{{h.observation}}\"\n}\n{% endfor %}"
+    - 'document-prompt=Study the following context. Use only the information provided
+      in the context in your response. Do not speculate if the answer is not found
+      in the provided set of knowledge statements.
+
+
+      Here is the context:
+
+      {{documents}}
+
+
+      Use only the provided knowledge statements to respond to the following:
+
+      {{query}}
+
+      '
+    - 'extract-definitions=Study the following text and derive definitions for any
+      discovered entities. Do not provide definitions for entities whose definitions
+      are incomplete or unknown. Output relationships in JSON format as an array of
+      objects with keys:
+
+      - entity: the name of the entity
+
+      - definition: English text which defines the entity
+
+
+      Here is the text:
+
+      {{text}}
+
+
+      Requirements:
+
+      - Do not provide explanations.
+
+      - Do not use special characters in the response text.
+
+      - The response will be written as plain text.
+
+      - Do not include null or unknown definitions.
+
+      - The response shall use the following JSON schema structure:
+
+
+      ```json
+
+      [{"entity": string, "definition": string}]
+
+      ```'
+    - 'extract-relationships=Study the following text and derive entity relationships.  For
+      each relationship, derive the subject, predicate and object of the relationship.
+      Output relationships in JSON format as an array of objects with keys:
+
+      - subject: the subject of the relationship
+
+      - predicate: the predicate
+
+      - object: the object of the relationship
+
+      - object-entity: FALSE if the object is a simple data type and TRUE if the object
+      is an entity
+
+
+      Here is the text:
+
+      {{text}}
+
+
+      Requirements:
+
+      - You will respond only with well formed JSON.
+
+      - Do not provide explanations.
+
+      - Respond only with plain text.
+
+      - Do not respond with special characters.
+
+      - The response shall use the following JSON schema structure:
+
+
+      ```json
+
+      [{"subject": string, "predicate": string, "object": string, "object-entity":
+      boolean}]
+
+      ```
+
+      '
+    - 'extract-rows=<instructions>
+
+      Study the following text and derive objects which match the schema provided.
+
+
+      You must output an array of JSON objects for each object you discover
+
+      which matches the schema.  For each object, output a JSON object whose fields
+
+      carry the name field specified in the schema.
+
+      </instructions>
+
+
+      <schema>
+
+      {{schema}}
+
+      </schema>
+
+
+      <text>
+
+      {{text}}
+
+      </text>
+
+
+      <requirements>
+
+      You will respond only with raw JSON format data. Do not provide
+
+      explanations. Do not add markdown formatting or headers or prefixes.
+
+      </requirements>'
+    - "extract-topics=Read the provided text carefully. You will identify topics and\
+      \ their definitions found in the provided text. Topics are intangible concepts.\n\
+      \nReading Instructions:\n- Ignore document formatting in the provided text.\n\
+      - Study the provided text carefully for intangible concepts.\n\nHere is the\
+      \ text:\n{{text}}\n\nResponse Instructions: \n- Do not respond with special\
+      \ characters.\n- Return only topics that are concepts and unique to the provided\
+      \ text.\n- Respond only with well-formed JSON.\n- The JSON response shall be\
+      \ an array of objects with keys \"topic\" and \"definition\". \n- The response\
+      \ shall use the following JSON schema structure:\n\n```json\n[{\"topic\": string,\
+      \ \"definition\": string}]\n```\n\n- Do not write any additional text or explanations."
+    - 'kg-prompt=Study the following set of knowledge statements. The statements are
+      written in Cypher format that has been extracted from a knowledge graph. Use
+      only the provided set of knowledge statements in your response. Do not speculate
+      if the answer is not found in the provided set of knowledge statements.
+
+
+      Here''s the knowledge statements:
+
+      {% for edge in knowledge %}({{edge.s}})-[{{edge.p}}]->({{edge.o}})
+
+      {%endfor%}
+
+
+      Use only the provided knowledge statements to respond to the following:
+
+      {{query}}
+
+      '
+    - question={{question}}
+    - 'stix-sco=You are tasked with creating STIX 2.1 Cyber-observable Objects (SCOs)
+      based on the provided threat intelligence write-up. SCOs include: Artifact, Autonomous
+      System, Directory, Domain Name, Email Address, Email Message, File, IPv4 Address,
+      IPv6 Address, MAC Address, Mutex, Network Traffic, Process, Software, URL, User
+      Account, Windows Registry Key, X.509 Certificate, HTTP Request, ICMP, Socket
+      Ext, TCP Ext, Archive Ext, Raster Image Ext, NTFS Ext, PDF Ext, UNIX Account
+      Ext, Windows PE Binary Ext, Windows Process Ext, Windows Service Ext, Windows
+      Registry Ext, JPEG File Ext, Email MIME Component, Email MIME Multipart Type,
+      Email MIME Message Type, Email MIME Text Type. Create relevant STIX 2.1 SCOs
+      in JSON format based on the information provided in the text. Strictly follow
+      the STIX 2.1 specification, ensuring no properties are used that are not defined
+      in the specification Ensure the JSON output is valid, starting with [ and closing
+      with ]. STIX SCO objects require at least type, id and value properties. Only provide
+      output if one or more SCOs can be identified with reasonable certainty from
+      the text. Ensure the structure and format are fully compliant with STIX 2.1.id
+      STIX identifier must match <object-type>--<UUID> Return only the JSON array,
+      without any additional text, commentary, or code block delimiters (e.g., json).
+
+      Text: {{text}}
+
+      '
+    - 'stix-sdo=You are tasked with creating STIX 2.1 Domain Objects (SDOs) from the
+      provided threat intelligence text.Possible SDOs include: Attack Pattern, Campaign,
+      Course of Action, Identity, Indicator, Intrusion Set, Malware, Observed Data,
+      Report, Threat Actor, Tool, Vulnerability, Infrastructure, Relationship, Sighting,
+      Note, Opinion, Grouping, Incident, Location, Malware Analysis.Create relevant
+      SDOs in JSON format, strictly adhering to the STIX 2.1 specification.Ensure
+      the output is a valid JSON array ([...]) containing only SDOs identified with
+      high confidence. The is_family field indicates whether the malware is a family
+      (if true) or an instance (if false). The values true or false are always enclosed
+      in quotes. For id property write just SDO_type-- following this example: "id": "malware--". Timestamp must be in ISO 8601 format. Don''t use created_by_ref and
+      source_ref. The labels property in malware is used to categorize or tag the malware
+      object with descriptive terms (e.g., "trojan", "backdoor", "ransomware"), Must
+      contain at least one string. threat-actor labels property should be an array
+      of strings representing categories or descriptive terms for the threat actor. Return
+      only the JSON array, without any additional text, commentary, or code block
+      delimiters (e.g., json).
+
+
+      Text: {{text}}'
+    - 'stix-sro=You are tasked with creating a STIX 2.1 Relationship Object (SRO)
+      based on the provided writeup about threat intelligence text SDOs and SCOsRemember
+      a relationship is a link between STIX Domain Objects (SDOs), STIX Cyber-observable
+      Objects (SCOs), or between an SDO and a SCO that describes the way in which
+      the objects are related. Relationships can be represented using an external
+      STIX Relationship Object (SRO) or, in some cases, through certain properties
+      which store an identifier reference that comprises an embedded relationship,
+      (for example the created_by_ref property). Create STIX Objects, in json format. Identify
+      Relationships: For each entity (like intrusion-set, malware, infrastructure,
+      domain-name, file, directory), identify how they relate to each other. For example,
+      malware might use infrastructure for command and control, or an intrusion set
+      might leverage certain domains. Use relationship Objects: Use relationship objects
+      to connect entities. This object will specify the source and target entities
+      and define the nature of the relationship (e.g., "uses", "communicates with"). Ensure
+      Consistent Referencing: Make sure that every object you want to relate is referenced
+      correctly using their id in the relationship objects. Pay attention to properties,
+      don''t use properties not defined in STIX 2.1 specification. Start with [ and
+      close with ] , no other content before [ and after ]. If you cannot identify a
+      specific SCO from the provided text, simply do not do anything. Provide output
+      only if you can identify one or more SCOs with reasonable certainty. Pay attention
+      to provide valid json. Pay attention to provide valid STIX 2.1 structure. Return
+      only the JSON array, without any additional text, commentary, or code block
+      delimiters (e.g., json).
+
+
+      Input text:
+
+      {{text}}
+
+
+      SDO:
+      
+      {{stix_sdo}}
+
+
+      SCO:
+      
+      {{stix_sco}}
+
+      '
+    - --prompt-response-type
+    - agent-react=json
+    - document-prompt=text
+    - extract-definitions=json
+    - extract-relationships=json
+    - extract-rows=json
+    - extract-topics=json
+    - kg-prompt=text
+    - stix-sdo=json
+    - stix-sco=json
+    - stix-sro=json
+    - --prompt-schema
+    - extract-definitions={"items":{"properties":{"definition":{"type":"string"},"entity":{"type":"string"}},"required":["entity","definition"],"type":"object"},"type":"array"}
+    - extract-relationships={"items":{"properties":{"object":{"type":"string"},"object-entity":{"type":"boolean"},"predicate":{"type":"string"},"subject":{"type":"string"}},"required":["subject","predicate","object","object-entity"],"type":"object"},"type":"array"}
+    - extract-topics={"items":{"properties":{"definition":{"type":"string"},"topic":{"type":"string"}},"required":["topic","definition"],"type":"object"},"type":"array"}
+    - --prompt-term
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    image: docker.io/trustgraph/trustgraph-flow:0.19.3
+    restart: on-failure:100
