@@ -7,8 +7,6 @@ data as a JSON-encoded STIX package of extracted objects.
 import json
 import uuid
 
-from pulsar.schema import Record, Bytes
-
 from trustgraph.schema import topic, Error, Metadata, TextDocument
 from trustgraph.schema import document_ingest_queue, text_ingest_queue
 from trustgraph.schema import prompt_request_queue, prompt_response_queue
@@ -84,6 +82,8 @@ class Processor(ConsumerProducer):
         # Encode as JSON
         enc_sdo = json.dumps(sdo, indent=4)
 
+        print("Got SDO")
+
         # Use the prompt client to extract STIX SCO
         sco = self.prompt.request(
             "stix-sco",
@@ -106,6 +106,8 @@ class Processor(ConsumerProducer):
                 "stix_sco": enc_sco,
             }
         )
+
+        print("Got SRO")
 
         # Turn the whole lot into a STIX bundle with generated ID
         pkg = {
