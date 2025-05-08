@@ -12,6 +12,8 @@ from trustgraph.schema import TextDocument
 from trustgraph.base import FlowProcessor, ConsumerSpec, ProducerSpec
 from trustgraph.base import PromptClientSpec
 
+# Every processor has an ID which it uses to get its configuration
+# information.  The ID can be overriden
 default_ident = "cyber-extract"
 
 # Local schema
@@ -24,6 +26,7 @@ class Processor(FlowProcessor):
     # Constructor
     def __init__(self, **params):
 
+        # Get the ID
         id = params.get("id", default_ident)
 
         # Initialise parent class, takes care of Pulsar configuration
@@ -33,25 +36,43 @@ class Processor(FlowProcessor):
             }
         )
 
+        # The rest of this configures connections.  TrustGraph processing
+        # organises data into separate 'flows' which are logically
+        # separate.  Each flow has its own Pulsar queues, even if data
+        # is going through the same processors and processing functions.
+        # When flows are set up, queeus are configured automatically as
+        # defined by the specifications here.
+
+        # The names for producers and consumers is used to look up the
+        # queue names in the flowclass specification.
+
+        # Configure input
         self.register_specification(
             ConsumerSpec(
-                name = "input",
-                schema = TextDocument,
-                handler = self.on_message,
+                name = "input",             # Identifier, as used in the
+                                            # flow class definition
+                schema = TextDocument,      # Schema
+                handler = self.on_message,  # Handler to call on each message
             )
         )
 
+        # Configure connection to the prompt service.  This sets up a
+        # consumer and producer to make a round-trip request to the
+        # prompt service
         self.register_specification(
             PromptClientSpec(
-                request_name = "prompt-request",
-                response_name = "prompt-response",
+                request_name = "prompt-request",   # Identifier, as used in
+                                                   # the flow class
+                response_name = "prompt-response", # Response identifier
             )
         )
 
+        # Configure output connection
         self.register_specification(
             ProducerSpec(
-                name = "output",
-                schema = StixDocument,
+                name = "output",        # Identifier, as used in the
+                                        # flow class definition
+                schema = StixDocument,  # Schema
             )
         )
 
@@ -112,6 +133,7 @@ class Processor(FlowProcessor):
 
         print("Text doc received", flush=True)
 
+        # Input is a Pulsar message, this gets the contents
         v = msg.value()
 
         print(f"Decoding {v.metadata.id}...", flush=True)
@@ -133,6 +155,7 @@ class Processor(FlowProcessor):
             stix = enc.encode("utf-8"),
         )
 
+        # Send to the next processor
         await flow("output").send(r)
 
         print("Done.", flush=True)

@@ -9,7 +9,6 @@ import json
 
 from trustgraph.base import FlowProcessor, ConsumerSpec, ProducerSpec
 
-
 from trustgraph.base import FlowProcessor
 
 from trustgraph.schema import TextDocument
@@ -23,6 +22,8 @@ from trustgraph.rdf import TRUSTGRAPH_ENTITIES
 # Local schema
 from trustgraph_stix.schema import StixDocument
 
+# Every processor has an ID which it uses to get its configuration
+# information.  The ID can be overriden
 default_ident = "stix-load"
 
 # Makes URIs
@@ -41,6 +42,7 @@ class Processor(FlowProcessor):
 
     def __init__(self, **params):
 
+        # Get the ID
         id = params.get("id", default_ident)
 
         # Initialise parent class, takes care of Pulsar configuration
@@ -50,16 +52,27 @@ class Processor(FlowProcessor):
             }
         )
 
-        # Describe the input
+        # The rest of this configures connections.  TrustGraph processing
+        # organises data into separate 'flows' which are logically
+        # separate.  Each flow has its own Pulsar queues, even if data
+        # is going through the same processors and processing functions.
+        # When flows are set up, queeus are configured automatically as
+        # defined by the specifications here.
+
+        # The names for producers and consumers is used to look up the
+        # queue names in the flowclass specification.
+
+        # Configure input
         self.register_specification(
             ConsumerSpec(
-                name = "input",
-                schema = StixDocument,
-                handler = self.on_message
+                name = "input",             # Identifier, as used in the
+                                            # flow class definition
+                schema = StixDocument,      # Schema
+                handler = self.on_message   # Handler to call on each message
             )
         )
 
-        # Describe an output for triples
+        # An output for triples
         self.register_specification(
             ProducerSpec(
                 name = "triples",
@@ -67,7 +80,7 @@ class Processor(FlowProcessor):
             )
         )
 
-        # Describe an output for entity contexts
+        # An output for entity contexts
         self.register_specification(
             ProducerSpec(
                 name = "entity-contexts",
@@ -202,7 +215,7 @@ class Processor(FlowProcessor):
 
             print("Forward response...")
 
-            # Forward triple and entity context objects
+            # Forward triples.  These go the graph store.
             t = Triples(
                 metadata=v.metadata,
                 triples=triples,
@@ -210,6 +223,10 @@ class Processor(FlowProcessor):
 
             await flow("triples").send(t)
 
+            # Entity context objects.  Entity contexts contain a
+            # graph node name and some textual context to associate.
+            # In subsequent processing, embeddings are applied to the
+            # text content, and stored, associated with the graph node name.
             ec = EntityContexts(
                 metadata=v.metadata,
                 entities=entities,
