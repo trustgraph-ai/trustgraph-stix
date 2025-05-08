@@ -1,9 +1,12 @@
 
 # Cybersecurity threat analysis with TrustGraph
 
-With presentation to the knowledge graph in STIX form.  Everything here
-is designed to work with TrustGraph 0.23 and beyond and makes use of
-recent APIs.
+This has been maintained to be an example of adding external processing
+components to a running TrustGraph system.
+
+Takes threat reports and converts to something that can load to the
+knowledge graph in STIX form.  Everything here is designed to work
+with TrustGraph 0.23 and beyond and makes use of recent APIs.
 
 ## To use
 
