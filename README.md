@@ -1,7 +1,9 @@
 
 # Cybersecurity threat analysis with TrustGraph
 
-With presentation to the knowledge graph in STIX form
+With presentation to the knowledge graph in STIX form.  Everything here
+is designed to work with TrustGraph 0.23 and beyond and makes use of
+recent APIs.
 
 ## To use
 
@@ -9,7 +11,9 @@ To use:
 
 - Build the software here to a container:
 
+```
   podman build -f Containerfile -t docker.io/trustgraph/trustgraph-stix:0.0.0 .
+```
 
 - You need to use a high-end LLM, been testing with VertexAI Gemini models.
 
@@ -17,15 +21,20 @@ To use:
   cyber-extract and tg-init-cyberthreat are started at boot time.
   
   To do this to a TrustGraph docker-compose file, use the patch file here.
-  
+
+```  
   patch -p1 docker-compose.yaml < stix.patch  
+```
 
 - Start TrustGraph
 
 - Wait until the system is running (e.g. check `tg-show-flows`).
 
 - Check the `threat-analysis` flow class has been loaded:
-  `tg-show-flow-classes`.
+
+```
+tg-show-flow-classes
+```
   
 - Stop the default flow and replace it with a threat analysis flow:
 
@@ -42,7 +51,7 @@ tg-add-library-document \
     --name 'Sample threat report' \
     --description 'A fictitous test data set mentioning the authentitor' \
     --kind text/plain \
-    ../stix/sample.txt
+    sample.txt
 ```
 
 ```
@@ -51,9 +60,21 @@ tg-show-library-documents
 
 ```
 tg-start-library-processing \
-    --id threat01 \
+    --id threat02 \
     --flow-id 0000 \
-    -d https://trustgraph.ai/doc/authentitator 
+    -d https://trustgraph.ai/doc/bad
+```
+
+- Wait 30 seconds or so, check the graph has some data:
+
+```
+tg-show-graph
+```
+
+- Ask a question:
+
+```
+tg-invoke-graph-rag -q 'Describe threat actors using the authentiator'
 ```
 
 ## Internals
@@ -72,6 +93,5 @@ What's broken:
   improvement.
 
 - Could be better integrated with Config UI.
-
 
 
