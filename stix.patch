@@ -40,7 +40,7 @@
 +     command:
 +     - sh
 +     - -c
-+     - 'sleep 15 && tg-init-cyberthreat'
++     - 'sleep 5 && tg-init-cyberthreat'
 +     deploy:
 +       resources:
 +         limits:

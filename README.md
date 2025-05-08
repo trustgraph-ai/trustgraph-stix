@@ -1,8 +1,9 @@
 
-Cybersecurity threat analysis with presentation to the knowledge
-graph in STIX form.
+# Cybersecurity threat analysis with TrustGraph
 
-# To use
+With presentation to the knowledge graph in STIX form
+
+## To use
 
 To use:
 
@@ -10,26 +11,60 @@ To use:
 
   podman build -f Containerfile -t docker.io/trustgraph/trustgraph-stix:0.0.0 .
 
+- You need to use a high-end LLM, been testing with VertexAI Gemini models.
 
-- Configure TrustGraph, make sure to use STIX prompts in
-  prompt-configuration.txt
+- Configure TrustGraph.  Modify the resources so that stix-load,
+  cyber-extract and tg-init-cyberthreat are started at boot time.
   
-- Need a high-end LLM, been testing with VertexAI Gemini models.
+  To do this to a TrustGraph docker-compose file, use the patch file here.
+  
+  patch -p1 docker-compose.yaml < stix.patch  
 
 - Start TrustGraph
 
-- Delete the kg-extract-definitions, kg-extract-relationships and
-  kg-extract-topics processors.
-  
-- Start cyber-extract and stix-load
+- Wait until the system is running (e.g. check `tg-show-flows`).
 
-- Load the sample.txt file here with tg-load-text
+- Check the `threat-analysis` flow class has been loaded:
+  `tg-show-flow-classes`.
+  
+- Stop the default flow and replace it with a threat analysis flow:
+
+```
+tg-stop-flow -i 0000
+tg-start-flow -n threat-analysis -i 0000 -d 'STIX flow'
+```
+
+- Load the sample document and process:
+
+```
+tg-add-library-document \
+    --identifier https://trustgraph.ai/doc/authentitator \
+    --name 'Sample threat report' \
+    --description 'A fictitous test data set mentioning the authentitor' \
+    --kind text/plain \
+    ../stix/sample.txt
+```
+
+```
+tg-show-library-documents
+```
+
+```
+tg-start-library-processing \
+    --id threat01 \
+    --flow-id 0000 \
+    -d https://trustgraph.ai/doc/authentitator 
+```
+
+## Internals
 
 Components:
 
 - cyber-extract: Takes a text document and emits a STIX 2 bundle
 - stix-load: Takes the STIX document from cyber-extract and maps to
   graph entities and triples.
+- tg-init-cyberthreat: Runs at boot time to add prompts and flow-classes
+  to the system.
 
 What's broken:
 
@@ -39,45 +74,4 @@ What's broken:
 - Could be better integrated with Config UI.
 
 
-
-
-
-
-
-podman build -f Containerfile -t docker.io/trustgraph/trustgraph-stix:0.0.0 .
-
-
-tg-show-processor-state
-
-tg-show-flows
-
-
-
-
-tg-show-flow-classes
-
-tg-put-flow-class -n threat-analysis -c "$(cat ../stix/stix-flow-class.json)"
-
-
-python3 load-stix-prompts
-
-tg-stop-flow -i 0000
-tg-start-flow -n threat-analysis -i 0000 -d 'STIX flow'
-
-# Basic interface
-tg-load-text -f 0000 sample.txt
-
-tg-add-library-document \
-    --identifier https://trustgraph.ai/doc/authentitator \
-    --name 'Sample threat report' \
-    --description 'A fictitous test data set mentioning the authentitor' \
-    --kind text/plain \
-    ../stix/sample.txt
-
-tg-show-library-documents
-
-tg-start-library-processing \
-    --id threat01 \
-    --flow-id 0000 \
-    -d https://trustgraph.ai/doc/authentitator 
 

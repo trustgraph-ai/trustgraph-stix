@@ -9,6 +9,7 @@ import trustgraph_stix.prompts as prompts
 import importlib
 
 import os
+import sys
 import json
 import argparse
 
@@ -56,7 +57,7 @@ def set_prompt(api, id, prompt, response):
 
 def configure(url):
 
-    api = Api(url)
+    api = Api(url, timeout=5)
     config = api.config()
     flow = api.flow()
 
@@ -74,7 +75,8 @@ def configure(url):
 
     config.put([
         ConfigValue(
-            type="flow-classes", key="bunch", value=json.dumps(class_def)
+            type="flow-classes", key="threat-analysis",
+            value=json.dumps(class_def)
         )
     ])
 
@@ -109,9 +111,12 @@ def run():
             url=args.api_url,
         )
 
+        sys.exit(0)
+
     except Exception as e:
 
         print("Exception:", e, flush=True)
+        sys.exit(1)
 
 
 
