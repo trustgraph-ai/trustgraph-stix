@@ -7,74 +7,63 @@ data as a JSON-encoded STIX package of extracted objects.
 import json
 import uuid
 
-from trustgraph.schema import topic, Error, Metadata, TextDocument
-from trustgraph.schema import document_ingest_queue, text_ingest_queue
-from trustgraph.schema import prompt_request_queue, prompt_response_queue
-from trustgraph.base import ConsumerProducer
-from trustgraph.clients.prompt_client import PromptClient
+from trustgraph.schema import TextDocument
+
+from trustgraph.base import FlowProcessor, ConsumerSpec, ProducerSpec
+from trustgraph.base import PromptClientSpec
+
+default_ident = "cyber-extract"
 
 # Local schema
-from trustgraph_stix.schema import StixDocument, stix_ingest_queue
+from trustgraph_stix.schema import StixDocument
 
-# Need the module name for consumer/producer registration, it's used as
-# the default subscriber name
-module = ".".join(__name__.split(".")[1:-1])
-
-# Default queue settings
-default_input_queue = text_ingest_queue
-default_output_queue = stix_ingest_queue
-default_subscriber = module
-
-# This processor is defined as a class subclassed from ConsumerProducer,
-# which means it consumes data, processes it, and then can forward on
-# as a producer.
-class Processor(ConsumerProducer):
+# This processor is defined as a class subclassed from FlowProcess,
+# which supports managing queue resources
+class Processor(FlowProcessor):
 
     # Constructor
     def __init__(self, **params):
 
-        # Ingest config (using default settings)
-        input_queue = params.get("input_queue", default_input_queue)
-        output_queue = params.get("output_queue", default_output_queue)
-        subscriber = params.get("subscriber", default_subscriber)
-        pr_request_queue = params.get(
-            "prompt_request_queue", prompt_request_queue
-        )
-        pr_response_queue = params.get(
-            "prompt_response_queue", prompt_response_queue
-        )
+        id = params.get("id", default_ident)
 
         # Initialise parent class, takes care of Pulsar configuration
         super(Processor, self).__init__(
             **params | {
-                "input_queue": input_queue,
-                "output_queue": output_queue,
-                "subscriber": subscriber,
-                "input_schema": TextDocument,
-                "output_schema": StixDocument,
-                "prompt_request_queue": pr_request_queue,
-                "prompt_response_queue": pr_response_queue,
+                "id": id,
             }
         )
 
-        # Set up the prompt client
-        self.prompt = PromptClient(
-            pulsar_host=self.pulsar_host,
-            input_queue=pr_request_queue,
-            output_queue=pr_response_queue,
-            subscriber = subscriber + "-prompt",
+        self.register_specification(
+            ConsumerSpec(
+                name = "input",
+                schema = TextDocument,
+                handler = self.on_message,
+            )
+        )
+
+        self.register_specification(
+            PromptClientSpec(
+                request_name = "prompt-request",
+                response_name = "prompt-response",
+            )
+        )
+
+        self.register_specification(
+            ProducerSpec(
+                name = "output",
+                schema = StixDocument,
+            )
         )
 
         print("Initialised")
 
     # Method, takes a bunch of text and uses the LLM to extract STIX
     # objects
-    def extract_stix(self, text):
+    async def extract_stix(self, text, prompt):
 
-        # Use the prompt client to extract STIX SDO
-        sdo = self.prompt.request(
-            "stix-sdo",
-            {
+        sdo = await prompt(
+            id = "stix-sdo",
+            variables = {
                 "text": text
             }
         )
@@ -85,9 +74,9 @@ class Processor(ConsumerProducer):
         print("Got SDO")
 
         # Use the prompt client to extract STIX SCO
-        sco = self.prompt.request(
-            "stix-sco",
-            {
+        sco = await prompt(
+            id = "stix-sco",
+            variables = {
                 "text": text
             }
         )
@@ -98,12 +87,12 @@ class Processor(ConsumerProducer):
         enc_sco = json.dumps(sco, indent=4)
 
         # Form a request which takes the SCO and SDO output as input
-        sro = self.prompt.request(
-            "stix-sro",
-            {
+        sro = await prompt(
+            id = "stix-sro",
+            variables = {
                 "text": text,
                 "stix_sdo": enc_sdo,
-                "stix_sco": enc_sco,
+                "stix_sco": enc_sco
             }
         )
 
@@ -119,7 +108,7 @@ class Processor(ConsumerProducer):
         return pkg
 
     # Called to handle next event on the queue
-    def handle(self, msg):
+    async def on_message(self, msg, consumer, flow):
 
         print("Text doc received", flush=True)
 
@@ -131,7 +120,7 @@ class Processor(ConsumerProducer):
         text = v.text.decode("utf-8")
 
         # Turn text into STIX
-        pkg = self.extract_stix(text)
+        pkg = await self.extract_stix(text, flow("prompt-request").prompt)
 
         print("STIX extraction successful", flush=True)
 
@@ -140,10 +129,11 @@ class Processor(ConsumerProducer):
 
         # Create a Pulsar message and send to next queue
         r = StixDocument(
-            metadata=v.metadata,
-            stix=enc.encode("utf-8"),
+            metadata = v.metadata,
+            stix = enc.encode("utf-8"),
         )
-        self.send(r)
+
+        await flow("output").send(r)
 
         print("Done.", flush=True)
 
@@ -152,12 +142,9 @@ class Processor(ConsumerProducer):
 
         # This configures the standard set of command-line arguments
         # which are provided by ConsumerProducer, we don't need any others
-        ConsumerProducer.add_args(
-            parser, default_input_queue, default_subscriber,
-            default_output_queue,
-        )
+        FlowProcessor.add_args(parser)
 
 def run():
 
-    Processor.start(module, __doc__)
+    Processor.launch(default_ident, __doc__)
 

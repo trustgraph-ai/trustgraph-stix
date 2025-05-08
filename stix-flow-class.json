@@ -1,0 +1,140 @@
+{
+    "class": {
+        "embeddings:{class}": {
+            "request": "non-persistent://tg/request/embeddings:{class}",
+            "response": "non-persistent://tg/response/embeddings:{class}"
+        },
+        "ge-query:{class}": {
+            "request": "non-persistent://tg/request/graph-embeddings:{class}",
+            "response": "non-persistent://tg/response/graph-embeddings:{class}"
+        },
+        "graph-rag:{class}": {
+            "embeddings-request": "non-persistent://tg/request/embeddings:{class}",
+            "embeddings-response": "non-persistent://tg/response/embeddings:{class}",
+            "graph-embeddings-request": "non-persistent://tg/request/graph-embeddings:{class}",
+            "graph-embeddings-response": "non-persistent://tg/response/graph-embeddings:{class}",
+            "prompt-request": "non-persistent://tg/request/prompt-rag:{class}",
+            "prompt-response": "non-persistent://tg/response/prompt-rag:{class}",
+            "request": "non-persistent://tg/request/graph-rag:{class}",
+            "response": "non-persistent://tg/response/graph-rag:{class}",
+            "triples-request": "non-persistent://tg/request/triples:{class}",
+            "triples-response": "non-persistent://tg/response/triples:{class}"
+        },
+        "metering-rag:{class}": {
+            "input": "non-persistent://tg/response/text-completion-rag:{class}"
+        },
+        "metering:{class}": {
+            "input": "non-persistent://tg/response/text-completion:{class}"
+        },
+        "prompt-rag:{class}": {
+            "request": "non-persistent://tg/request/prompt-rag:{class}",
+            "response": "non-persistent://tg/response/prompt-rag:{class}",
+            "text-completion-request": "non-persistent://tg/request/text-completion-rag:{class}",
+            "text-completion-response": "non-persistent://tg/response/text-completion-rag:{class}"
+        },
+        "prompt:{class}": {
+            "request": "non-persistent://tg/request/prompt:{class}",
+            "response": "non-persistent://tg/response/prompt:{class}",
+            "text-completion-request": "non-persistent://tg/request/text-completion:{class}",
+            "text-completion-response": "non-persistent://tg/response/text-completion:{class}"
+        },
+        "text-completion-rag:{class}": {
+            "request": "non-persistent://tg/request/text-completion-rag:{class}",
+            "response": "non-persistent://tg/response/text-completion-rag:{class}"
+        },
+        "text-completion:{class}": {
+            "request": "non-persistent://tg/request/text-completion:{class}",
+            "response": "non-persistent://tg/response/text-completion:{class}"
+        },
+        "triples-query:{class}": {
+            "request": "non-persistent://tg/request/triples:{class}",
+            "response": "non-persistent://tg/response/triples:{class}"
+        }
+    },
+    "description": "Specialised cybersecurity threat report analysis",
+    "flow": {
+        "agent-manager:{id}": {
+            "graph-rag-request": "non-persistent://tg/request/graph-rag:{class}",
+            "graph-rag-response": "non-persistent://tg/response/graph-rag:{class}",
+            "next": "non-persistent://tg/request/agent:{id}",
+            "prompt-request": "non-persistent://tg/request/prompt:{class}",
+            "prompt-response": "non-persistent://tg/response/prompt:{class}",
+            "request": "non-persistent://tg/request/agent:{id}",
+            "response": "non-persistent://tg/response/agent:{id}",
+            "text-completion-request": "non-persistent://tg/request/text-completion:{class}",
+            "text-completion-response": "non-persistent://tg/response/text-completion:{class}"
+        },
+        "ge-write:{id}": {
+            "input": "persistent://tg/flow/graph-embeddings-store:{id}"
+        },
+        "graph-embeddings:{id}": {
+            "embeddings-request": "non-persistent://tg/request/embeddings:{class}",
+            "embeddings-response": "non-persistent://tg/response/embeddings:{class}",
+            "input": "persistent://tg/flow/entity-contexts-load:{id}",
+            "output": "persistent://tg/flow/graph-embeddings-store:{id}"
+        },
+        "stix-load:{id}": {
+            "entity-contexts": "persistent://tg/flow/entity-contexts-load:{id}",
+            "input": "persistent://tg/flow/stix:{id}",
+            "triples": "persistent://tg/flow/triples-store:{id}"
+        },
+        "cyber-extract:{id}": {
+            "input": "persistent://tg/flow/text-document-load:{id}",
+            "prompt-request": "non-persistent://tg/request/prompt:{class}",
+            "prompt-response": "non-persistent://tg/response/prompt:{class}",
+            "output": "persistent://tg/flow/stix:{id}"
+        },
+        "kg-store:{id}": {
+            "graph-embeddings-input": "persistent://tg/flow/graph-embeddings-store:{id}",
+            "triples-input": "persistent://tg/flow/triples-store:{id}"
+        },
+        "pdf-decoder:{id}": {
+            "input": "persistent://tg/flow/document-load:{id}",
+            "output": "persistent://tg/flow/text-document-load:{id}"
+        },
+        "triples-write:{id}": {
+            "input": "persistent://tg/flow/triples-store:{id}"
+        }
+    },
+    "interfaces": {
+        "agent": {
+            "request": "non-persistent://tg/request/agent:{id}",
+            "response": "non-persistent://tg/response/agent:{id}"
+        },
+        "document-load": "persistent://tg/flow/document-load:{id}",
+        "embeddings": {
+            "request": "non-persistent://tg/request/embeddings:{class}",
+            "response": "non-persistent://tg/response/embeddings:{class}"
+        },
+        "entity-contexts-load": "persistent://tg/flow/entity-contexts-load:{id}",
+        "graph-embeddings": {
+            "request": "non-persistent://tg/request/graph-embeddings:{class}",
+            "response": "non-persistent://tg/response/graph-embeddings:{class}"
+        },
+        "graph-embeddings-store": "persistent://tg/flow/graph-embeddings-store:{id}",
+        "graph-rag": {
+            "request": "non-persistent://tg/request/graph-rag:{class}",
+            "response": "non-persistent://tg/response/graph-rag:{class}"
+        },
+        "prompt": {
+            "request": "non-persistent://tg/request/prompt:{class}",
+            "response": "non-persistent://tg/response/prompt:{class}"
+        },
+        "text-completion": {
+            "request": "non-persistent://tg/request/text-completion:{class}",
+            "response": "non-persistent://tg/response/text-completion:{class}"
+        },
+        "text-load": "persistent://tg/flow/text-document-load:{id}",
+        "triples": {
+            "request": "non-persistent://tg/request/triples:{class}",
+            "response": "non-persistent://tg/response/triples:{class}"
+        },
+        "triples-store": "persistent://tg/flow/triples-store:{id}"
+    },
+    "tags": [
+	"vulnerability-analysis",
+        "stix",
+        "graph-rag",
+        "knowledge-extraction"
+    ]
+}

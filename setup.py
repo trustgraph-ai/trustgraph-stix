@@ -19,7 +19,7 @@ setuptools.setup(
     version=version,
     author="trustgraph.ai",
     author_email="security@trustgraph.ai",
-    description="TrustGraph provides a means to run a pipeline of flexible AI processing components in a flexible means to achieve a processing pipeline.",
+    description="Cyber threat-analysis support for TrustGraph",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/trustgraph-ai/trustgraph-stix",

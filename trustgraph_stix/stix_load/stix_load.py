@@ -7,33 +7,23 @@ along with entity/context definitions for embedding.
 import urllib.parse
 import json
 
-from pulsar.schema import JsonSchema, Record, Bytes
+from trustgraph.base import FlowProcessor, ConsumerSpec, ProducerSpec
 
-from trustgraph.schema import topic, Error, Metadata, TextDocument
-from trustgraph.schema import document_ingest_queue, text_ingest_queue
-from trustgraph.base import ConsumerProducer
-from trustgraph.schema import Triple, Triples, Metadata, Value
+
+from trustgraph.base import FlowProcessor
+
+from trustgraph.schema import TextDocument
+from trustgraph.schema import Triple, Triples, Value
 from trustgraph.schema import EntityContext, EntityContexts
-from trustgraph.schema import triples_store_queue
-from trustgraph.schema import entity_contexts_ingest_queue
-from trustgraph.log_level import LogLevel
-from trustgraph.base import ConsumerProducer
+
 from trustgraph.knowledge import DESCRIPTION, IS_A, LABEL, KEYWORD
 from trustgraph.knowledge import Uri, Literal
 from trustgraph.rdf import TRUSTGRAPH_ENTITIES
 
 # Local schema
-from trustgraph_stix.schema import StixDocument, stix_ingest_queue
+from trustgraph_stix.schema import StixDocument
 
-# Need the module name for consumer/producer registration, it's used as
-# the default subscriber name
-module = ".".join(__name__.split(".")[1:-1])
-
-# Default queue settings
-default_input_queue = stix_ingest_queue
-default_output_queue = triples_store_queue
-default_entity_context_queue = entity_contexts_ingest_queue
-default_subscriber = module
+default_ident = "stix-load"
 
 # Makes URIs
 def to_uri(text, prefix="stix"):
@@ -46,52 +36,44 @@ def to_uri(text, prefix="stix"):
 
 IDENTITY_CLASS = to_uri("identity", "stix-rel")
 
-# This processor is defined as a class subclassed from ConsumerProducer,
-# which means it consumes data, processes it, and then can forward on
-# as a producer.
-class Processor(ConsumerProducer):
+# This processor is defined as a class subclassed from FlowProcessor,
+class Processor(FlowProcessor):
 
     def __init__(self, **params):
 
-        # Ingest config (using default settings)
-        input_queue = params.get("input_queue", default_input_queue)
-        output_queue = params.get("output_queue", default_output_queue)
-        ec_queue = params.get(
-            "entity_context_queue",
-            default_entity_context_queue
-        )
-        subscriber = params.get("subscriber", default_subscriber)
+        id = params.get("id", default_ident)
 
         # Initialise parent class, takes care of Pulsar configuration
         super(Processor, self).__init__(
             **params | {
-                "input_queue": input_queue,
-                "output_queue": output_queue,
-                "subscriber": subscriber,
-                "input_schema": StixDocument,
-                "output_schema": Triples,
-                "vector_schema": EntityContexts.__name__,
+                "id": id,
             }
         )
 
-        # The producer side has an extra output for entity contexts.
-        self.ec_prod = self.client.create_producer(
-            topic=ec_queue,
-            schema=JsonSchema(EntityContexts),
+        # Describe the input
+        self.register_specification(
+            ConsumerSpec(
+                name = "input",
+                schema = StixDocument,
+                handler = self.on_message
+            )
         )
 
-        # The ConsumerProducer class sets up a Prometheus metric with
-        # default information in it, this sets its value again to include
-        # information about the entity context queue and schema
-        __class__.pubsub_metric.info({
-            "input_queue": input_queue,
-            "output_queue": output_queue,
-            "entity_context_queue": ec_queue,
-            "subscriber": subscriber,
-            "input_schema": StixDocument.__name__,
-            "output_schema": Triples.__name__,
-            "vector_schema": EntityContexts.__name__,
-        })
+        # Describe an output for triples
+        self.register_specification(
+            ProducerSpec(
+                name = "triples",
+                schema = Triples
+            )
+        )
+
+        # Describe an output for entity contexts
+        self.register_specification(
+            ProducerSpec(
+                name = "entity-contexts",
+                schema = EntityContexts
+            )
+        )
 
     # Unpack a STIX document, returns triples and entity context array
     def unpack(self, stix):
@@ -200,7 +182,7 @@ class Processor(ConsumerProducer):
         return triples, entities
 
     # Called to handle next event on the queue
-    def handle(self, msg):
+    async def on_message(self, msg, consumer, flow):
 
         try:
 
@@ -225,13 +207,15 @@ class Processor(ConsumerProducer):
                 metadata=v.metadata,
                 triples=triples,
             )
-            self.producer.send(t)
 
-            t = EntityContexts(
+            await flow("triples").send(t)
+
+            ec = EntityContexts(
                 metadata=v.metadata,
                 entities=entities,
             )
-            self.ec_prod.send(t)
+
+            await flow("entity-contexts").send(ec)
 
         except Exception as e:
             print("Exception: ", e, flush=True)
@@ -243,19 +227,9 @@ class Processor(ConsumerProducer):
 
         # This configures the standard set of command-line arguments
         # which are provided by ConsumerProducer
-        ConsumerProducer.add_args(
-            parser, default_input_queue, default_subscriber,
-            default_output_queue,
-        )
-
-        # Also add an argument for the entity-context queue
-        parser.add_argument(
-            '-e', '--entity-context-queue',
-            default=default_entity_context_queue,
-            help=f'Entity context queue (default: {default_entity_context_queue})'
-        )
+        FlowProcessor.add_args(parser)
 
 def run():
 
-    Processor.start(module, __doc__)
+    Processor.launch(default_ident, __doc__)
 
