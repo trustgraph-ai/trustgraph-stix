@@ -23,6 +23,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/trustgraph-ai/trustgraph-stix",
+    package_data={'': ["resources/**"]},
     packages=setuptools.find_namespace_packages(
         where='./',
     ),
@@ -41,6 +42,8 @@ setuptools.setup(
     ],
     scripts=[
         "scripts/stix-load",
+        "scripts/tg-init-cyberthreat",
         "scripts/cyber-extract",
     ]
 )
+

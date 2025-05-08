@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+
+from trustgraph_stix.init_cyberthreat import run
+
+run()
+

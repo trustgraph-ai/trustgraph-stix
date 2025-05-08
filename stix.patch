@@ -1,0 +1,56 @@
+*** docker-compose-0.23.yaml	2025-05-08 09:21:02.697831290 +0100
+--- docker-compose-0.23-stix.yaml	2025-05-08 11:31:50.171717845 +0100
+***************
+*** 475,480 ****
+--- 475,525 ----
+            memory: 128M
+      image: docker.io/trustgraph/trustgraph-flow:0.23.18
+      restart: on-failure:100
++   cyber-extract:
++     command:
++     - cyber-extract
++     - -p
++     - pulsar://pulsar:6650
++     deploy:
++       resources:
++         limits:
++           cpus: '0.5'
++           memory: 128M
++         reservations:
++           cpus: '0.1'
++           memory: 128M
++     image: docker.io/trustgraph/trustgraph-stix:0.0.0
++     restart: on-failure:100
++   stix-load:
++     command:
++     - stix-load
++     - -p
++     - pulsar://pulsar:6650
++     deploy:
++       resources:
++         limits:
++           cpus: '0.5'
++           memory: 128M
++         reservations:
++           cpus: '0.1'
++           memory: 128M
++     image: docker.io/trustgraph/trustgraph-stix:0.0.0
++     restart: on-failure:100
++   init-cyberthreat:
++     command:
++     - sh
++     - -c
++     - 'sleep 15 && tg-init-cyberthreat'
++     deploy:
++       resources:
++         limits:
++           cpus: '0.1'
++           memory: 64M
++         reservations:
++           cpus: '0.01'
++           memory: 64M
++     image: docker.io/trustgraph/trustgraph-stix:0.0.0
++     restart: on-failure:100
+    prometheus:
+      deploy:
+        resources:

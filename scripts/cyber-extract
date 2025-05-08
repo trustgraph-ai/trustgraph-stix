@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+
+from trustgraph_stix.cyber_extract import run
+
+run()
+
