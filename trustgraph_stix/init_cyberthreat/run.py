@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Loads cyberthreat analysis prompts into the system.
+Loads cyberthreat analysis prompts and flow class into the system.
 """
 
 from trustgraph.api import Api, ConfigKey, ConfigValue
